@@ -13,7 +13,7 @@ const second = 1000;
 enum Path {
   HOME = '/',
   AUTH = '/auth',
-  USERS = '/users',
+  USERS = '/user',
 }
 
 app.use(
@@ -31,13 +31,13 @@ app.use(
 );
 
 const corsOptions: CorsOptions = {
-  origin: ["http://localhost:3000", "http://localhost:5173"],
+  origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
   optionsSuccessStatus: 200,
 }
 
-app.get(Path.HOME, cors(corsOptions),  (request, res) => {
-  console.log(request.session);
-  res.send("Hello World! 2");
+app.get(Path.HOME, cors(corsOptions), async (request, res) => {
+  console.log('home called');
+  res.status(200).send('Hello World!');
 });
 
 
@@ -45,6 +45,4 @@ app.get(Path.HOME, cors(corsOptions),  (request, res) => {
 app.use(Path.USERS, cors(corsOptions), usersRouter);
 app.use(Path.AUTH, cors(corsOptions), authRouter);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+export default app;
