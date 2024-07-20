@@ -21,11 +21,11 @@ app.use(
   urlencoded({ extended: true }),
   session({
     secret: 'keyboard cat',
-    saveUninitialized: false,
+    saveUninitialized: true,
     resave: false,
     cookie: {
       maxAge: second * secondsInMinute * 60, // 1 hour
-      secure: false,
+      secure: true,
     }
   }),
 );
