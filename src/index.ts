@@ -17,11 +17,17 @@ enum Path {
   AUTH = '/auth',
   USER = '/user',
 }
+// after successful login, set cookie
+// after one min will be deleted,
+// timer will not reset
 
 app.use(
   json(),
   urlencoded({ extended: true }),
   session({
+    cookie: {
+      maxAge: (second * secondsInMinute),
+    },
     secret: 'keyboard cat',
     saveUninitialized: false,
     resave: false,
@@ -29,7 +35,7 @@ app.use(
 );
 
 app.use(passport.initialize())
-app.use(passport.session())
+app.use(passport.authenticate('session'));
 
 const corsOptions: CorsOptions = {
   origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
@@ -45,7 +51,7 @@ app.use(Path.AUTH, cors(corsOptions), authRouter);
 
 const prisma = new PrismaClient();
 
-passport.use(new passportStrategy.Strategy(async (email, password, done) => {
+passport.use(new passportStrategy.Strategy({usernameField: 'email'}, async (email, password, done) => {
     prisma.user.findUnique({
         where: {
             email: email,
@@ -70,13 +76,13 @@ passport.use(new passportStrategy.Strategy(async (email, password, done) => {
 }));
 
 passport.serializeUser((user, done) => {
-    done(null, user.id);
+    done(null, user);
 });
 
-passport.deserializeUser<string>((id, done) => {
+passport.deserializeUser<Express.User>((user, done) => {
     prisma.user.findUnique({
         where: {
-            id: id,
+            email: user.email,
         },
     }).then((user) => {
         done(null, user);
@@ -101,14 +107,14 @@ router.post(`${Path.USER}/create`, (req, res, next) => {
     });
 });
 
-app.get(`${Path.USER}/fail`, async (req, res) => {
+app.get(`${Path.AUTH}/fail`, async (req, res) => {
     res.send('Failed to login');
 });
 
-app.post(`${Path.USER}/login`, passport.authenticate('local', {
+app.post(`${Path.AUTH}/login`, passport.authenticate('local', {
     failureMessage: true,
-    successRedirect: `${Path.USER}/secured`,
-    failureRedirect: `${Path.USER}/fail`,
+    successRedirect: `${Path.AUTH}/secured`,
+    failureRedirect: `${Path.AUTH}/fail`,
 }));
 
 const ensureAuthenticated = (req: Request, res: Response, next: NextFunction) => {
@@ -118,11 +124,11 @@ const ensureAuthenticated = (req: Request, res: Response, next: NextFunction) =>
     res.send('Unauthorized');
 }
 
-app.get(`${Path.USER}/secured`, ensureAuthenticated, (req, res) => {
+app.get(`${Path.AUTH}/secured`, ensureAuthenticated, (req, res) => {
     res.send('Secured');
 });
 
-app.get(`${Path.USER}/logout`, (req, res) => {
+app.get(`${Path.AUTH}/logout`, (req, res) => {
     req.logout((err) => {
         if(err) return res.send(err);
         return res.send('Logged out');
