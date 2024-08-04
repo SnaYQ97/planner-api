@@ -1,12 +1,13 @@
 import express, {json, urlencoded, Request, Response, NextFunction} from "express";
 import cors, {CorsOptions} from "cors";
-import session from "express-session";
+import expressSession from "express-session";
 import authRouter from "./routes/auth.router";
 import passport from "passport";
 import {PrismaClient} from "@prisma/client";
 import * as passportStrategy from "passport-local";
 import {pbkdf2, randomBytes, timingSafeEqual} from "node:crypto";
 import router from "./routes/users.router";
+import { PrismaSessionStore} from "@quixo3/prisma-session-store";
 
 const app = express();
 const PORT = 3000;
@@ -17,20 +18,27 @@ enum Path {
   AUTH = '/auth',
   USER = '/user',
 }
-// after successful login, set cookie
-// after one min will be deleted,
-// timer will not reset
+
+const prisma = new PrismaClient();
 
 app.use(
   json(),
   urlencoded({ extended: true }),
-  session({
-    cookie: {
-      maxAge: (second * secondsInMinute),
+  expressSession({
+      cookie: {
+      maxAge: (second * secondsInMinute * 30),
     },
     secret: 'keyboard cat',
-    saveUninitialized: false,
-    resave: false,
+    saveUninitialized: true,
+    resave: true,
+      store: new PrismaSessionStore(
+        prisma,
+        {
+            checkPeriod: 10 * 60 * 1000,
+            dbRecordIdIsSessionId: true,
+            dbRecordIdFunction: undefined,
+        }
+      )
   }),
 );
 
@@ -48,10 +56,10 @@ app.get(Path.HOME, cors(corsOptions), async (req, res) => {
 });
 
 app.use(Path.AUTH, cors(corsOptions), authRouter);
-
-const prisma = new PrismaClient();
+app.use(Path.USER, cors(corsOptions), router);
 
 passport.use(new passportStrategy.Strategy({usernameField: 'email'}, async (email, password, done) => {
+    console.log(email, password);
     prisma.user.findUnique({
         where: {
             email: email,
@@ -67,8 +75,8 @@ passport.use(new passportStrategy.Strategy({usernameField: 'email'}, async (emai
             if (!timingSafeEqual(result.password, hashedPassword)) {
                 return done(null, false, { message: 'Incorrect password' });
             }
-            const { password, ...user } = result;
-            return done(null, user);
+            const { email, id, ...rest } = result;
+            return done(null, { email, id });
         });
     }).catch((err) => {
         return done(err);
@@ -76,18 +84,28 @@ passport.use(new passportStrategy.Strategy({usernameField: 'email'}, async (emai
 }));
 
 passport.serializeUser((user, done) => {
-    done(null, user);
+    console.log('serializer')
+    done(null, user.id);
 });
 
-passport.deserializeUser<Express.User>((user, done) => {
-    prisma.user.findUnique({
+passport.deserializeUser<string>(async (id, done) => {
+    console.log('deserializer')
+    await prisma.user.findUnique({
         where: {
-            email: user.email,
+            id: id,
         },
     }).then((user) => {
-        done(null, user);
+        if (!user) {
+            return done('Unauthorized', null);
+        }
+
+        const { id: userId, email } = user;
+        done(null, {
+            id: userId,
+            email,
+        });
     }).catch((err) => {
-        done(err);
+        done(err, null);
     });
 });
 
@@ -107,32 +125,44 @@ router.post(`${Path.USER}/create`, (req, res, next) => {
     });
 });
 
-app.get(`${Path.AUTH}/fail`, async (req, res) => {
-    res.send('Failed to login');
+app.post(`${Path.AUTH}/`, passport.authenticate('local'), (req, res) => {
+    console.log(req.session.id)
+    res.sendStatus(200);
 });
 
-app.post(`${Path.AUTH}/login`, passport.authenticate('local', {
-    failureMessage: true,
-    successRedirect: `${Path.AUTH}/secured`,
-    failureRedirect: `${Path.AUTH}/fail`,
-}));
-
-const ensureAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+export const ensureAuthenticated = (req: Request, res: Response, next: NextFunction) => {
     if (req.isAuthenticated()) {
         return next();
     }
-    res.send('Unauthorized');
+    res.sendStatus(401);
 }
 
-app.get(`${Path.AUTH}/secured`, ensureAuthenticated, (req, res) => {
-    res.send('Secured');
+app.get(`${Path.AUTH}/status`, ensureAuthenticated, (req, res) => {
+    res.status(200).send({
+        message: 'Authenticated',
+    });
 });
 
 app.get(`${Path.AUTH}/logout`, (req, res) => {
     req.logout((err) => {
-        if(err) return res.send(err);
-        return res.send('Logged out');
+        req.session.destroy((err) => {
+            if (err) {
+                return res.status(500).send({message: 'An error occurred while logging out'});
+            }
+            return res.status(200).send({
+                message: 'Logged out',
+            });
+        });
     });
 });
 
 export default app;
+
+declare global {
+    namespace Express {
+        interface User {
+            id: string,
+            email: string;
+        }
+    }
+}

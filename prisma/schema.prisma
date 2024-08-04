@@ -13,3 +13,10 @@ model User {
   password Bytes  @db.ByteA
   salt     Bytes  @db.ByteA
 }
+
+model Session {
+  id        String   @id @default(uuid())
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+}
