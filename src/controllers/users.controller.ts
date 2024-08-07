@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express-serve-static-core';
-import {ensureAuthenticated} from "../index";
+import {NextFunction} from "express";
+import {pbkdf2, randomBytes} from "node:crypto";
+import {ensureAuthenticated} from "../utils/ensureAuthenticated";
 
 interface User {
   id?: number;
@@ -52,7 +54,24 @@ const getUserById = (request: Request<{id: string}>, response: Response<any>) =>
   }
 }
 
+const createUser = async (req: Request<any, any, User, UserQueryParams>, res: Response<any>, next: NextFunction) => {
+  const salt = randomBytes(32);
+  pbkdf2(req.body.password, salt, 31000, 32, 'sha256', async (err,  hashedPassword) => {
+    if (err) return next(err);
+    await prisma.user.create({
+      data: {
+        email: req.body.email,
+        password: hashedPassword,
+        salt: salt,
+      }
+    }).then((user) => {
+      res.send('User created');
+    }).catch((err) => next(err));
+  });
+}
+
 export default {
   getUsers,
   getUserById,
+  createUser,
 }
