@@ -32,7 +32,6 @@ passport.use(new passportStrategy.Strategy({usernameField: 'email'}, async (emai
   });
 }));
 passport.serializeUser((user, done) => {
-  console.log('serializer')
   done(null, {
     id: user.id,
     email: user.email,
@@ -40,7 +39,6 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser<Express.User>(async (user, done) => {
-  console.log('deserializer')
   await prisma.user.findUnique({
     where: {
       id: user.id,
@@ -67,13 +65,11 @@ const login = (req: Request, res: Response) => passport.authenticate('local')(re
   });
 });
 
-const getStatus = (req: Request, res: Response) => {
-  ensureAuthenticated(req, res, () => {
-    res.status(200).send({
-      message: 'Authenticated',
-    });
+const getStatus =  (req: Request, res: Response) => ensureAuthenticated(req, res, () => {
+  res.status(200).send({
+    message: 'Authenticated',
   });
-}
+})
 
 const logout = (req: Request, res: Response) => req.logout((err) => {
   if (err) return res.status(500).send({message: 'An error occurred while logging out'});
