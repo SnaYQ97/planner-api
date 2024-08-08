@@ -42,18 +42,21 @@ app.use(
   passport.authenticate('session'),
 );
 
-const corsOptions: CorsOptions = {
+app.get(Path.HOME, cors({
   origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
-  optionsSuccessStatus: 200,
-}
-
-app.get(Path.HOME, cors(corsOptions), async (req, res) => {
+}), async (req, res) => {
   console.log('home called');
   res.status(200).send('Hello World!');
 });
 
-app.use(Path.AUTH, cors(corsOptions), authRouter);
-app.use(Path.USER, cors(corsOptions), router);
+app.use(Path.AUTH, cors({
+  origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
+  allowedHeaders: ['Cookie', 'content-type'],
+  credentials: true,
+}), authRouter);
+app.use(Path.USER, cors({
+  origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
+}), router);
 
 export default app;
 
