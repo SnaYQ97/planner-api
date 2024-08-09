@@ -43,19 +43,19 @@ app.use(
 );
 
 app.get(Path.HOME, cors({
-  origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
+  origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173"],
 }), async (req, res) => {
   console.log('home called');
   res.status(200).send('Hello World!');
 });
 
 app.use(Path.AUTH, cors({
-  origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
+  origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173"],
   allowedHeaders: ['Cookie', 'content-type'],
   credentials: true,
 }), authRouter);
 app.use(Path.USER, cors({
-  origin: [`http://localhost:${PORT}`, "http://localhost:5173"],
+  origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173"],
 }), router);
 
 export default app;
