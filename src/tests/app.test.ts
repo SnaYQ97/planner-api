@@ -1,12 +1,17 @@
-// help me write first test with jest we will test already runned app on port 3001
-
 import request from "supertest";
 
 import app from "../index";
 
-describe('GET /', () => {
-  it('should return 200 and name john', async () => {
+describe('test api', () => {
+  it('should return 200', async () => {
     const response = await request(app).get('/');
     expect(response.statusCode).toBe(200);
+  });
+});
+
+describe('GET /auth', () => {
+  it('should return 401', async () => {
+    const response = await request(app).get('/auth/status');
+    expect(response.statusCode).toBe(401);
   });
 });
