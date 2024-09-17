@@ -8,10 +8,13 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
-  email    String @unique
-  password Bytes  @db.ByteA
-  salt     Bytes  @db.ByteA
+  id          String       @id @unique @default(uuid())
+  email       String       @unique
+  password    Bytes
+  salt        Bytes
+  cretedAt    DateTime?    @default(now())
+  updatedAt   DateTime?    @default(now())
+  BankAccount BankAccount?
 }
 
 model Session {
@@ -19,4 +22,24 @@ model Session {
   sid       String   @unique
   data      String
   expiresAt DateTime
+}
+
+model Transaction {
+  id            String      @id @default(uuid())
+  amount        Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now())
+  bankAccountId String      @unique
+  BankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+}
+
+model BankAccount {
+  id          String       @id @default(uuid())
+  balance     Int          @default(0)
+  type        String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now())
+  userId      String       @unique
+  User        User         @relation(fields: [userId], references: [id])
+  Transaction Transaction?
 }

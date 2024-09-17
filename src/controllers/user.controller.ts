@@ -3,6 +3,7 @@ import { Request, Response } from 'express-serve-static-core';
 import {NextFunction} from "express";
 import {pbkdf2, randomBytes} from "node:crypto";
 import {ensureAuthenticated} from "../utils/ensureAuthenticated";
+import {createUserValidation} from "../validators/user.validation";
 
 interface User {
   id?: number;
@@ -30,12 +31,7 @@ const getUsers = async (req: Request, res: Response) =>
   });
 });
 
-interface GetUserByIdResponse {
-  data: {  id: string ;  email: string ;  password: string; } | null;
-  error?: string | null;
-}
-
-const getUserById = (request: Request<{id: string}>, response: Response<any>) => {
+const getUserById = (request: Request<{id: string}>, response: Response) => {
   try {
     const user = prisma.user.findUnique({
       where: {
@@ -54,8 +50,18 @@ const getUserById = (request: Request<{id: string}>, response: Response<any>) =>
   }
 }
 
-const createUser = async (req: Request<any, any, User, UserQueryParams>, res: Response<any>, next: NextFunction) => {
+const createUser = async (req: Request<{
+  email: string;
+  password: string;
+  passwordConfirmation: string;
+}>, res: Response, next: NextFunction) => {
   const salt = randomBytes(32);
+
+  if (req.body.password !== req.body.passwordConfirmation) {
+    return res.status(400).send('Passwords do not match');
+  }
+  console.log(req.body, 'something');
+
   pbkdf2(req.body.password, salt, 31000, 32, 'sha256', async (err,  hashedPassword) => {
     if (err) return next(err);
     await prisma.user.create({
@@ -65,7 +71,12 @@ const createUser = async (req: Request<any, any, User, UserQueryParams>, res: Re
         salt: salt,
       }
     }).then((user) => {
-      res.send('User created');
+      res.status(201).send({
+        data: {
+          email: user.email,
+          id: user.id,
+        }
+      })
     }).catch((err) => next(err));
   });
 }
