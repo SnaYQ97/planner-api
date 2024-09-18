@@ -3,7 +3,7 @@ import cors, {CorsOptions} from "cors";
 import expressSession from "express-session";
 import authRouter from "./routes/auth.router";
 import {PrismaClient} from "@prisma/client";
-import router from "./routes/users.router";
+import userRouter from "./routes/users.router";
 import { PrismaSessionStore } from "@quixo3/prisma-session-store";
 import passport from "passport";
 
@@ -56,7 +56,7 @@ app.use(Path.AUTH, cors({
 }), authRouter);
 app.use(Path.USER, cors({
   origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173"],
-}), router);
+}), userRouter);
 
 export default app;
 
