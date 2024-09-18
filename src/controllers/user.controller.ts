@@ -4,6 +4,7 @@ import {NextFunction} from "express";
 import {pbkdf2, randomBytes} from "node:crypto";
 import {ensureAuthenticated} from "../utils/ensureAuthenticated";
 import {createUserValidation} from "../validators/user.validation";
+import {login} from "./auth.controller";
 
 interface User {
   id?: number;
@@ -71,12 +72,16 @@ const createUser = async (req: Request<{
         salt: salt,
       }
     }).then((user) => {
-      res.status(201).send({
-        data: {
-          email: user.email,
-          id: user.id,
-        }
-      })
+      if (req.body.loginAfterCreate) {
+        login(req, res);
+      } else {
+        res.status(201).send({
+          data: {
+            email: user.email,
+            id: user.id,
+          }
+        });
+      }
     }).catch((err) => next(err));
   });
 }

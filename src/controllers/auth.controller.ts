@@ -58,7 +58,7 @@ passport.deserializeUser<Express.User>(async (user, done) => {
   });
 });
 
-const login = (req: Request, res: Response) => passport.authenticate('local')(req, res, () => {
+export const login = (req: Request, res: Response) => passport.authenticate('local')(req, res, () => {
   res.status(200).send({
     message: 'Logged in',
     user: (req.session as any)?.passport.user
