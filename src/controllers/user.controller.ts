@@ -3,23 +3,22 @@ import { Request, Response } from 'express-serve-static-core';
 import {NextFunction} from "express";
 import {pbkdf2, randomBytes} from "node:crypto";
 import {ensureAuthenticated} from "../utils/ensureAuthenticated";
-import {createUserValidation} from "../validators/user.validation";
 import {login} from "./auth.controller";
 
-interface User {
-  id?: number;
-  email: string;
-  password: string;
-}
+// interface User {
+//   id?: number;
+//   email: string;
+//   password: string;
+// }
 
-interface UserQueryParams {
-  loginAfterCreate?: boolean;
-}
-
-interface UserResponse {
-  data?: Omit<User, 'password'>;
-  error?: string;
-}
+// interface UserQueryParams {
+//   loginAfterCreate?: boolean;
+// }
+//
+// interface UserResponse {
+//   data?: Omit<User, 'password'>;
+//   error?: string;
+// }
 
 const prisma = new PrismaClient();
 

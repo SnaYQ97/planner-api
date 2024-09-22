@@ -1,5 +1,5 @@
 import express, { json, urlencoded } from "express";
-import cors, {CorsOptions} from "cors";
+import cors from "cors";
 import expressSession from "express-session";
 import authRouter from "./routes/auth.router";
 import {PrismaClient} from "@prisma/client";
@@ -8,7 +8,7 @@ import { PrismaSessionStore } from "@quixo3/prisma-session-store";
 import passport from "passport";
 
 const app = express();
-const PORT = 3000;
+export const PORT = 3002;
 const secondsInMinute = 60;
 const second = 1000;
 enum Path {
