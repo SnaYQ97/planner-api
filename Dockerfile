@@ -11,7 +11,7 @@ COPY prisma ./prisma/
 RUN npm ci
 
 # Kopiujemy resztę plików
-COPY . .
+COPY planner-api .
 
 # Generujemy klienta Prisma i budujemy aplikację
 RUN npx prisma generate
@@ -32,4 +32,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
 
 # Uruchamiamy migracje i aplikację
-CMD ["npm", "start"] 
+CMD ["npm", "start"]

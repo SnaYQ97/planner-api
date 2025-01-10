@@ -6,7 +6,7 @@
   "scripts": {
     "test": "jest --watchAll --verbose --maxWorkers=1",
     "build": "prisma generate && tsc",
-    "dev": "nodemon --exec tsx ./src/index.ts",
+    "dev": "nodemon --exec tsx src/index.ts",
     "start": "node dist/index.js"
   },
   "keywords": [],

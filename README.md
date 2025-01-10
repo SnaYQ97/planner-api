@@ -1,30 +1,37 @@
-# Budget Planner
+# Express Application with Prisma and TypeScript
 
-Aplikacja do planowania budżetu osobistego.
+This project is an Express application utilizing Prisma with TypeScript for managing user data in a SQL database. It provides basic functionalities to create, retrieve, and manage users.
 
-## Struktura projektu
+## Getting Started
 
-- `planner-api/` - Backend aplikacji (Node.js, Express, Prisma)
-- `planner-ui/` - Frontend aplikacji (React, Vite, TypeScript)
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
-## Rozwój lokalny
+### Prerequisites
 
-1. Sklonuj repozytorium
-2. Zainstaluj zależności:
+- Node.js
+- npm
+- A SQL database (PostgreSQL, MySQL, etc.)
+
+### Installing
+
+1. Clone the repository to your local machine.
+2. Install the required dependencies by running `npm install`.
+3. Set up your database and configure the `.env` file with your database connection details.
+4. Run `npx prisma migrate dev` to create the database schema.
+5. Start the server with `npm start`.
+
+## Running the tests
+
+To run the automated tests for this system, use:
+
 ```bash
-cd planner-api && npm install
-cd ../planner-ui && npm install
+npm test
 ```
 
-3. Uruchom aplikację:
-```bash
-# Terminal 1 - Backend
-cd planner-api && npm run dev
+### Notes
 
-# Terminal 2 - Frontend
-cd planner-ui && npm run dev
-```
+Tests: 
+ - units - jest
+ - integration - jest
+ - e2e - cyprus
 
-## Deployment
-
-Aplikacja jest skonfigurowana do automatycznego deploymentu na Render.com przy użyciu pliku `render.yaml`. 
