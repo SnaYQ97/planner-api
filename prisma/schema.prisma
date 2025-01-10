@@ -16,9 +16,9 @@ model User {
   firstName    String?       @default("")
   lastName     String?       @default("")
   bankAccounts BankAccount[]
+  categories   Category[]
   csvImports   CsvImport[]
   transactions Transaction[]
-  categories   Category[]
 }
 
 model Category {
@@ -67,13 +67,13 @@ model BankAccount {
   userId            String
   accountNumber     String
   accountType       String
-  name              String        @default("")
   interestRate      Decimal?
   targetAmount      Decimal?
   targetDate        DateTime?
   interestEndDate   DateTime?
   interestRateLimit Decimal?
   interestStartDate DateTime?
+  name              String        @default("")
   color             String?       @default("#9333ea")
   user              User          @relation(fields: [userId], references: [id])
   transactions      Transaction[]
