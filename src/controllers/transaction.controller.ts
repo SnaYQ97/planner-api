@@ -31,7 +31,6 @@ const getAllTransactions = async (req: Request, res: Response<TransactionRespons
       const transactions = await prisma.transaction.findMany({
         where: { 
           userId,
-          type: 'EXPENSE',
           date: {
             gte: startDate,
             lte: endDate
@@ -64,14 +63,16 @@ const createTransaction = async (req: Request, res: Response<TransactionResponse
     }
 
     try {
+      const categoryConnect = req.body.type === 'EXPENSE' && req.body.categoryId
+        ? { category: { connect: { id: req.body.categoryId } } }
+        : { category: { connect: undefined } };
+
       const transactionData: Prisma.TransactionCreateInput = {
         amount: new Prisma.Decimal(req.body.amount),
         description: req.body.description,
         date: new Date(req.body.date),
         type: req.body.type,
-        category: {
-          connect: { id: req.body.categoryId }
-        },
+        ...categoryConnect,
         bankAccount: {
           connect: { id: req.body.accountId }
         },
@@ -147,14 +148,16 @@ const updateTransaction = async (req: Request<{ id: string }>, res: Response<Tra
         });
       }
 
+      const categoryConnect = req.body.type === 'EXPENSE' && req.body.categoryId
+        ? { category: { connect: { id: req.body.categoryId } } }
+        : { category: { connect: undefined } };
+
       const transactionData: Prisma.TransactionUpdateInput = {
         amount: new Prisma.Decimal(req.body.amount),
         description: req.body.description,
         date: new Date(req.body.date),
         type: req.body.type,
-        category: {
-          connect: { id: req.body.categoryId }
-        },
+        ...categoryConnect,
         bankAccount: {
           connect: { id: req.body.accountId }
         }

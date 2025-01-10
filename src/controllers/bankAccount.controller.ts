@@ -1,7 +1,7 @@
 import { Request, Response } from 'express-serve-static-core';
 import { prisma } from '../lib/prisma';
 import { ensureAuthenticated } from '../utils/ensureAuthenticated';
-import { BankAccountResponse, CreateBankAccountRequest } from '../types/bankAccount';
+import { BankAccountResponse, BankAccountSuccessResponse, BankAccountErrorResponse, CreateBankAccountRequest, BankAccount } from '../types/bankAccount';
 import { Decimal } from '@prisma/client/runtime/library';
 
 export const getBankAccounts = async (
@@ -27,8 +27,8 @@ export const getBankAccounts = async (
 
       res.status(200).send({
         message: 'Bank accounts retrieved successfully',
-        accounts
-      });
+        accounts: accounts as unknown as BankAccount[]
+      } as BankAccountSuccessResponse);
     } catch (error) {
       res.status(500).send({
         message: 'Error retrieving bank accounts',
@@ -64,13 +64,13 @@ export const getBankAccountById = async (
         return res.status(404).send({
           message: 'Bank account not found',
           error: 'Bank account not found or access denied'
-        });
+        } as BankAccountErrorResponse);
       }
 
       res.status(200).send({
         message: 'Bank account retrieved successfully',
         account
-      });
+      } as BankAccountSuccessResponse);
     } catch (error) {
       res.status(500).send({
         message: 'Error retrieving bank account',
@@ -167,6 +167,7 @@ export const createBankAccount = async (
         interestEndDate: req.body.interestEndDate ? new Date(req.body.interestEndDate) : null,
         targetAmount: req.body.targetAmount ? new Decimal(req.body.targetAmount) : null,
         targetDate: req.body.targetDate ? new Date(req.body.targetDate) : null,
+        color: req.body.color || "#9333ea",
         user: {
           connect: {
             id: userId
@@ -180,8 +181,8 @@ export const createBankAccount = async (
 
       res.status(201).send({
         message: 'Bank account created successfully',
-        account
-      });
+        account: account as unknown as BankAccount
+      } as BankAccountSuccessResponse);
     } catch (error) {
       res.status(500).send({
         message: 'Error creating bank account',
@@ -236,13 +237,14 @@ export const updateBankAccount = async (
           interestEndDate: req.body.interestEndDate ? new Date(req.body.interestEndDate) : null,
           targetAmount: req.body.targetAmount ? new Decimal(req.body.targetAmount) : null,
           targetDate: req.body.targetDate ? new Date(req.body.targetDate) : null,
+          color: req.body.color || "#9333ea",
         }
       });
 
       res.status(200).send({
         message: 'Bank account updated successfully',
-        account: updatedAccount
-      });
+        account: updatedAccount as unknown as BankAccount
+      } as BankAccountSuccessResponse);
     } catch (error) {
       res.status(500).send({
         message: 'Error updating bank account',

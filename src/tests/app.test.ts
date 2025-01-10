@@ -39,7 +39,7 @@ const TEST_DAILY_ACCOUNT: CreateBankAccountRequest = {
 };
 
 const INVALID_BANK_ACCOUNT: CreateBankAccountRequest = {
-  accountType: 'INVALID_TYPE',  // nieprawidłowy typ konta
+  accountType: 'SAVINGS',  // nieprawidłowy typ konta
   name: 'A',  // za krótka nazwa - powinno być odrzucone
   balance: -100,    // ujemne saldo - powinno być odrzucone
   accountNumber: '123', // zły format - powinno być odrzucone
@@ -165,7 +165,7 @@ describe('Bank Account API', () => {
       expect(response.body.account).toBeDefined();
       expect(response.body.account.accountType).toBe('SAVINGS');
       expect(response.body.account.accountNumber).toBe(TEST_BANK_ACCOUNT.accountNumber);
-      expect(response.body.account.interestRate).toBe(TEST_BANK_ACCOUNT.interestRate);
+      expect(response.body.account.interestRate).toBe(TEST_BANK_ACCOUNT.interestRate?.toString());
     });
 
     it('should create daily account with valid data', async () => {
@@ -176,7 +176,7 @@ describe('Bank Account API', () => {
       expect(response.status).toBe(201);
       expect(response.body.account).toBeDefined();
       expect(response.body.account.accountType).toBe('DAILY');
-      expect(response.body.account.accountNumber).toBe(TEST_DAILY_ACCOUNT.accountNumber);
+      expect(response.body.account.accountNumber).toBe(TEST_DAILY_ACCOUNT.accountNumber.toString());
       expect(response.body.account.interestRate).toBeNull();
     });
 

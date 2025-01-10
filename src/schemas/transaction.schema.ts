@@ -12,7 +12,11 @@ export const createTransactionSchema = yup.object().shape({
       .min(3, 'Opis musi mieć minimum 3 znaki'),
     categoryId: yup
       .string()
-      .required('Kategoria jest wymagana'),
+      .when('type', {
+        is: 'EXPENSE',
+        then: (schema) => schema.required('Kategoria jest wymagana dla wydatku'),
+        otherwise: (schema) => schema.nullable(),
+      }),
     accountId: yup
       .string()
       .required('Konto jest wymagane'),
@@ -39,7 +43,11 @@ export const updateTransactionSchema = yup.object().shape({
       .min(3, 'Opis musi mieć minimum 3 znaki'),
     categoryId: yup
       .string()
-      .required('Kategoria jest wymagana'),
+      .when('type', {
+        is: 'EXPENSE',
+        then: (schema) => schema.required('Kategoria jest wymagana dla wydatku'),
+        otherwise: (schema) => schema.nullable(),
+      }),
     accountId: yup
       .string()
       .required('Konto jest wymagane'),

@@ -81,6 +81,10 @@ export const createBankAccountSchema = yup.object({
         then: (schema) => schema.required('Data docelowa jest wymagana dla konta oszczędnościowego'),
         otherwise: (schema) => schema.nullable(),
       }),
+    color: yup
+      .string()
+      .matches(/^#[0-9A-Fa-f]{6}$/, 'Nieprawidłowy format koloru')
+      .nullable(),
   }),
 });
 
@@ -139,6 +143,11 @@ export const updateBankAccountSchema = yup.object({
     targetDate: yup
       .date()
       .typeError('Nieprawidłowa data')
+      .nullable()
+      .optional(),
+    color: yup
+      .string()
+      .matches(/^#[0-9A-Fa-f]{6}$/, 'Nieprawidłowy format koloru')
       .nullable()
       .optional(),
   }),

@@ -5,6 +5,7 @@ import { hash } from 'argon2';
 import { login } from './auth.controller';
 import { createUserSchema, updateUserSchema } from '../schemas/user.schema';
 import { InferType } from 'yup';
+import { Prisma } from '@prisma/client';
 
 type CreateUserRequest = InferType<typeof createUserSchema>['body'];
 type UpdateUserRequest = InferType<typeof updateUserSchema>['body'];
@@ -73,17 +74,37 @@ const createUser = async (
       parallelism: 1
     });
     
-    const user = await prisma.user.create({
-      data: {
-        email: req.body.email.toLowerCase(),
-        password: hashedPassword,
-        firstName: '',
-        lastName: '',
-      },
-      select: {
-        id: true,
-        email: true
-      }
+    const user = await prisma.$transaction(async (prisma) => {
+      // Tworzenie użytkownika
+      const newUser = await prisma.user.create({
+        data: {
+          email: req.body.email.toLowerCase(),
+          password: hashedPassword,
+          firstName: '',
+          lastName: '',
+        },
+        select: {
+          id: true,
+          email: true
+        }
+      });
+
+      // Tworzenie konta głównego
+      await prisma.bankAccount.create({
+        data: {
+          accountType: 'DAILY',
+          name: 'Konto główne',
+          balance: new Prisma.Decimal(0),
+          accountNumber: '0000000000000000',
+          user: {
+            connect: {
+              id: newUser.id
+            }
+          }
+        }
+      });
+
+      return newUser;
     });
 
     if (req.body.loginAfterCreate) {
