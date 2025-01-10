@@ -8,13 +8,74 @@ datasource db {
 }
 
 model User {
-  id          String       @id @unique @default(uuid())
-  email       String       @unique
-  password    Bytes
-  salt        Bytes
-  cretedAt    DateTime?    @default(now())
-  updatedAt   DateTime?    @default(now())
-  BankAccount BankAccount?
+  id           String        @id @default(uuid())
+  email        String        @unique
+  updatedAt    DateTime      @default(now())
+  password     String
+  createdAt    DateTime      @default(now())
+  firstName    String?       @default("")
+  lastName     String?       @default("")
+  bankAccounts BankAccount[]
+  csvImports   CsvImport[]
+  transactions Transaction[]
+  categories   Category[]
+}
+
+model Category {
+  id           String        @id @default(uuid())
+  name         String
+  budget       Decimal       @default(0)
+  color        String        @default("#000000")
+  currentSpent Decimal       @default(0)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String      @id @default(uuid())
+  amount      Decimal
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now())
+  accountId   String
+  categoryId  String
+  date        DateTime
+  description String
+  type        String
+  userId      String
+  bankAccount BankAccount @relation(fields: [accountId], references: [id])
+  category    Category    @relation(fields: [categoryId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+}
+
+model CsvImport {
+  id         String   @id @default(uuid())
+  userId     String
+  fileName   String
+  importDate DateTime
+  status     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model BankAccount {
+  id                String        @id @default(uuid())
+  balance           Decimal
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @default(now())
+  userId            String
+  accountNumber     String
+  accountType       String
+  name              String        @default("")
+  interestRate      Decimal?
+  targetAmount      Decimal?
+  targetDate        DateTime?
+  interestEndDate   DateTime?
+  interestRateLimit Decimal?
+  interestStartDate DateTime?
+  user              User          @relation(fields: [userId], references: [id])
+  transactions      Transaction[]
 }
 
 model Session {
@@ -22,24 +83,4 @@ model Session {
   sid       String   @unique
   data      String
   expiresAt DateTime
-}
-
-model Transaction {
-  id            String      @id @default(uuid())
-  amount        Int         @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @default(now())
-  bankAccountId String      @unique
-  BankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
-}
-
-model BankAccount {
-  id          String       @id @default(uuid())
-  balance     Int          @default(0)
-  type        String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now())
-  userId      String       @unique
-  User        User         @relation(fields: [userId], references: [id])
-  Transaction Transaction?
 }

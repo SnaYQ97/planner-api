@@ -1,92 +1,163 @@
-import { PrismaClient } from '@prisma/client';
-import { Request, Response } from 'express-serve-static-core';
-import {NextFunction} from "express";
-import {pbkdf2, randomBytes} from "node:crypto";
-import {ensureAuthenticated} from "../utils/ensureAuthenticated";
-import {login} from "./auth.controller";
+import { Request, Response, NextFunction } from 'express-serve-static-core';
+import { prisma } from '../lib/prisma';
+import { ensureAuthenticated } from '../utils/ensureAuthenticated';
+import { hash } from 'argon2';
+import { login } from './auth.controller';
+import { createUserSchema, updateUserSchema } from '../schemas/user.schema';
+import { InferType } from 'yup';
 
-// interface User {
-//   id?: number;
-//   email: string;
-//   password: string;
-// }
+type CreateUserRequest = InferType<typeof createUserSchema>['body'];
+type UpdateUserRequest = InferType<typeof updateUserSchema>['body'];
 
-// interface UserQueryParams {
-//   loginAfterCreate?: boolean;
-// }
-//
-// interface UserResponse {
-//   data?: Omit<User, 'password'>;
-//   error?: string;
-// }
+interface UserData {
+  id: string;
+  email: string;
+}
 
-const prisma = new PrismaClient();
+type UserResponse = 
+  | { data: UserData }
+  | { error: string }
+  | { message: string };
 
-
-const getUsers = async (req: Request, res: Response) =>
-  ensureAuthenticated(req, res, async () => {
-  const users = await prisma.user.findMany();
-  res.send({
-    data: users,
-  });
-});
-
-const getUserById = (request: Request<{id: string}>, response: Response) => {
+const getUserById = async (request: Request<{ id: string }>, response: Response<UserResponse>) => {
   try {
-    const user = prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         id: request.params.id
+      },
+      select: {
+        id: true,
+        email: true,
       }
     });
+
+    if (!user) {
+      return response.status(404).send({
+        error: 'User not found'
+      });
+    }
+
     response.send({
-      data: user,
-      error: ''
+      data: user
     });
   } catch (error) {
     response.status(500).send({
-      data: null,
       error: 'An error occurred while getting the user.'
     });
   }
-}
+};
 
-const createUser = async (req: Request<{
-  email: string;
-  password: string;
-  passwordConfirmation: string;
-}>, res: Response, next: NextFunction) => {
-  const salt = randomBytes(32);
-
-  if (req.body.password !== req.body.passwordConfirmation) {
-    return res.status(400).send('Passwords do not match');
-  }
-  console.log(req.body, 'something');
-
-  pbkdf2(req.body.password, salt, 31000, 32, 'sha256', async (err,  hashedPassword) => {
-    if (err) return next(err);
-    await prisma.user.create({
-      data: {
-        email: req.body.email,
-        password: hashedPassword,
-        salt: salt,
+const createUser = async (
+  req: Request<{}, {}, CreateUserRequest>,
+  res: Response<UserResponse>,
+  next: NextFunction
+) => {
+  try {
+    // Sprawdź, czy użytkownik o takim emailu już istnieje (case-insensitive)
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email: req.body.email.toLowerCase(),
       }
-    }).then((user) => {
-      if (req.body.loginAfterCreate) {
-        login(req, res);
+    });
+
+    if (existingUser) {
+      return res.status(400).send({
+        error: 'User with this email already exists'
+      });
+    }
+
+    const hashedPassword = await hash(req.body.password, {
+      type: 2,           // argon2id
+      memoryCost: 19456, // 19 MiB
+      timeCost: 2,       // 2 iteracje
+      parallelism: 1
+    });
+    
+    const user = await prisma.user.create({
+      data: {
+        email: req.body.email.toLowerCase(),
+        password: hashedPassword,
+        firstName: '',
+        lastName: '',
+      },
+      select: {
+        id: true,
+        email: true
+      }
+    });
+
+    if (req.body.loginAfterCreate) {
+      return login(req, res);
+    }
+
+    return res.status(201).send({
+      data: user
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteUser = async (req: Request<{ id: string }>, res: Response<UserResponse>) =>
+  ensureAuthenticated(req, res, async () => {
+    const authenticatedUserId = req.session.passport?.user?.id;
+    const targetUserId = req.params.id;
+
+    if (!authenticatedUserId) {
+      return res.status(401).send({
+        error: 'User not authenticated'
+      });
+    }
+
+    // Sprawdzamy czy użytkownik próbuje usunąć swoje własne konto
+    if (authenticatedUserId !== targetUserId) {
+      return res.status(403).send({
+        error: 'You can only delete your own account'
+      });
+    }
+
+    try {
+      // Najpierw usuwamy wszystkie powiązane konta bankowe i transakcje
+      await prisma.$transaction([
+        prisma.transaction.deleteMany({
+          where: { userId: targetUserId }
+        }),
+        prisma.category.deleteMany({
+          where: { userId: targetUserId }
+        }),
+        prisma.bankAccount.deleteMany({
+          where: { userId: targetUserId }
+        }),
+        prisma.user.delete({
+          where: { id: targetUserId }
+        })
+      ]);
+
+      // Wylogowujemy użytkownika
+      req.logout((err) => {
+        if (err) {
+          console.error('Error during logout:', err);
+        }
+      });
+
+      res.status(200).send({
+        message: 'User deleted successfully'
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).send({
+          error: error.message
+        });
       } else {
-        res.status(201).send({
-          data: {
-            email: user.email,
-            id: user.id,
-          }
+        res.status(500).send({
+          error: 'An unknown error occurred'
         });
       }
-    }).catch((err) => next(err));
+    }
   });
-}
 
 export default {
-  getUsers,
   getUserById,
   createUser,
-}
+  deleteUser
+};

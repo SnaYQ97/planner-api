@@ -1,70 +1,53 @@
-import express, { json, urlencoded } from "express";
-import cors from "cors";
-import expressSession from "express-session";
-import authRouter from "./routes/auth.router";
-import {PrismaClient} from "@prisma/client";
-import userRouter from "./routes/users.router";
-import { PrismaSessionStore } from "@quixo3/prisma-session-store";
-import passport from "passport";
+import express from 'express';
+import session from 'express-session';
+import passport from 'passport';
+import cors from 'cors';
+import authRouter from './routes/auth.router';
+import bankAccountRouter from './routes/bankAccount.router';
+import userRouter from './routes/user.router';
+import transactionRouter from './routes/transaction.router';
+import categoryRouter from './routes/category.router';
+
+export enum PATH {
+  ROOT = '/',
+  AUTH = '/auth',
+  BANK_ACCOUNT = '/bank-account',
+  USER = '/user',
+  TRANSACTION = '/transaction',
+  CATEGORY = '/category'
+}
 
 const app = express();
-export const PORT = 3002;
-const secondsInMinute = 60;
-const second = 1000;
-enum Path {
-  HOME = '/',
-  AUTH = '/auth',
-  USER = '/user',
-}
+export const PORT = 3000;
 
-const prisma = new PrismaClient();
+app.use(cors({
+    origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173", "http://192.168.100.43:5173"],
+    credentials: true,
+}));
 
-app.use(
-  json(),
-  urlencoded({ extended: true }),
-  expressSession({
-      cookie: {
-      maxAge: (second * secondsInMinute * 30),
-    },
-    secret: 'keyboard cat',
-    saveUninitialized: true,
-    resave: true,
-      store: new PrismaSessionStore(
-        prisma,
-        {
-            checkPeriod: 10 * 60 * 1000,
-            dbRecordIdIsSessionId: true,
-            dbRecordIdFunction: undefined,
-        }
-      )
-  }),
-  passport.initialize(),
-  passport.authenticate('session'),
-);
+app.use(express.json());
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+}));
 
-app.get(Path.HOME, cors({
-  origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173"],
-}), async (req, res) => {
-  console.log('home called');
-  res.status(200).send('Hello World!');
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Routing
+app.use(PATH.AUTH, authRouter);
+app.use(PATH.BANK_ACCOUNT, bankAccountRouter);
+app.use(PATH.USER, userRouter);
+app.use(PATH.TRANSACTION, transactionRouter);
+app.use(PATH.CATEGORY, categoryRouter);
+
+app.get(PATH.ROOT, (_req, res) => {
+  res.sendStatus(200);
 });
 
-app.use(Path.AUTH, cors({
-  origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173"],
-  allowedHeaders: ['Cookie', 'content-type'],
-  credentials: true,
-}), authRouter);
-app.use(Path.USER, cors({
-  origin: [`http://localhost:${PORT}`, "http://localhost:5173", "http://192.168.100.5:5173"],
-}), userRouter);
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
 
 export default app;
-
-declare global {
-    namespace Express {
-        interface User {
-            id: string,
-            email: string;
-        }
-    }
-}
