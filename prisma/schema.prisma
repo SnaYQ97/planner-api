@@ -17,7 +17,6 @@ model User {
   lastName     String?       @default("")
   bankAccounts BankAccount[]
   categories   Category[]
-  csvImports   CsvImport[]
   transactions Transaction[]
 }
 
@@ -48,17 +47,6 @@ model Transaction {
   user        User        @relation(fields: [userId], references: [id])
 }
 
-model CsvImport {
-  id         String   @id @default(uuid())
-  userId     String
-  fileName   String
-  importDate DateTime
-  status     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
-}
-
 model BankAccount {
   id                String        @id @default(uuid())
   balance           Decimal
@@ -77,11 +65,4 @@ model BankAccount {
   color             String?       @default("#9333ea")
   user              User          @relation(fields: [userId], references: [id])
   transactions      Transaction[]
-}
-
-model Session {
-  id        String   @id @default(uuid())
-  sid       String   @unique
-  data      String
-  expiresAt DateTime
 }
